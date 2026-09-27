@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Bertioga 2026 — Gestão, Vaquinha & Roteiro</title>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    :root {
+      --primary: #0284c7;
+      --primary-dark: #0369a1;
+      --bg: #f1f5f9;
+      --card: #ffffff;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --success: #16a34a;
+      --success-bg: #dcfce7;
+      --warning: #ea580c;
+      --warning-bg: #ffedd5;
+      --danger: #dc2626;
+      --border: #e2e8f0;
+      --radius: 16px;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding-bottom: 95px; }
+
+    header {
+      background: linear-gradient(135deg, #0284c7, #0f172a);
+      color: white; padding: 24px 16px 20px 16px; text-align: center;
+      border-bottom-left-radius: 20px; border-bottom-right-radius: 20px;
+      box-shadow: 0 4px 12px rgba(2, 132, 199, 0.15);
+    }
+    header h1 { font-size: 1.5rem; font-weight: 800; letter-spacing: -0.5px; }
+    header p { font-size: 0.85rem; opacity: 0.85; margin-top: 4px; font-weight: 500; }
+
+    /* Estilos do Timer de Contagem Regressiva */
+    .countdown-container {
+      display: flex; justify-content: center; gap: 10px; margin-top: 12px;
+    }
+    .countdown-box {
+      background: rgba(255, 255, 255, 0.15); backdrop-filter: blur(4px);
+      padding: 6px 10px; border-radius: 10px; min-width: 55px; text-align: center;
+    }
+    .countdown-box .val { font-size: 1.1rem; font-weight: 800; }
+    .countdown-box .lbl { font-size: 0.6rem; text-transform: uppercase; opacity: 0.9; font-weight: 700; }
+
+    .container { max-width: 600px; margin: 0 auto; padding: 16px; }
+
+    .card {
+      background: var(--card); border-radius: var(--radius); padding: 18px;
+      margin-bottom: 16px; border: 1px solid var(--border);
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.03), 0 2px 4px -2px rgba(0, 0, 0, 0.03);
+    }
+    .card-title { font-size: 1.05rem; font-weight: 700; margin-bottom: 14px; color: var(--text); display: flex; align-items: center; justify-content: space-between; }
+
+    .metrics-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .metric-box {
+      background: #f8fafc; padding: 12px; border-radius: 12px;
+      border: 1px solid #f1f5f9; text-align: center;
+    }
+    .metric-box label { font-size: 0.7rem; color: var(--text-muted); display: block; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 2px; }
+    .metric-box span { font-size: 1.1rem; font-weight: 800; color: var(--text); }
+
+    .list-item {
+      display: flex; justify-content: space-between; align-items: center;
+      padding: 12px 0; border-bottom: 1px solid var(--border); font-size: 0.9rem;
+    }
+    .list-item:last-child { border-bottom: none; }
+
+    .badge {
+      padding: 6px 10px; border-radius: 20px; font-size: 0.75rem; font-weight: 700;
+      cursor: pointer; border: none; transition: transform 0.1s ease, box-shadow 0.1s ease;
+      display: inline-flex; align-items: center; gap: 4px;
+    }
+    .badge:active { transform: scale(0.95); }
+    .badge-paid { background: var(--success-bg); color: var(--success); }
+    .badge-pending { background: var(--warning-bg); color: var(--warning); border: 1px solid #fed7aa; }
+    .badge-unpaid { background: #fef9c3; color: #a16207; }
+
+    button.btn {
+      background: var(--primary); color: white; border: none; padding: 14px;
+      border-radius: 12px; font-weight: 700; cursor: pointer; width: 100%; margin-top: 10px;
+      font-size: 0.95rem; transition: background 0.2s, transform 0.1s;
+      box-shadow: 0 4px 10px rgba(2, 132, 199, 0.25);
+    }
+    button.btn:active { transform: scale(0.98); }
+
+    .btn-gps {
+      display: inline-flex; align-items: center; gap: 6px; background: #e0f2fe; color: var(--primary-dark);
+      padding: 8px 12px; border-radius: 8px; text-decoration: none; font-size: 0.8rem; font-weight: 700; margin-top: 6px;
+    }
+
+    .btn-edit {
+      background: #fef3c7; color: #b45309; border: none; padding: 4px 8px;
+      border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; margin-left: 6px;
+    }
+
+    .btn-delete {
+      background: #fee2e2; color: #b91c1c; border: none; padding: 4px 8px;
+      border-radius: 6px; font-size: 0.7rem; font-weight: bold; cursor: pointer; margin-left: 6px;
+    }
+
+    input, select {
+      width: 100%; padding: 12px; margin-bottom: 10px; border: 1px solid var(--border);
+      border-radius: 10px; font-size: 0.9rem; background: #fff; font-weight: 500;
+      outline: none; transition: border-color 0.2s;
+    }
+    input:focus, select:focus { border-color: var(--primary); }
+
+    .checkbox-group { display: flex; flex-direction: column; gap: 8px; margin: 12px 0; max-height: 220px; overflow-y: auto; }
+    .checkbox-item {
+      display: flex; align-items: center; gap: 12px; font-size: 0.88rem; font-weight: 600;
+      background: #f8fafc; padding: 10px 12px; border-radius: 10px; border: 1px solid var(--border);
+      cursor: pointer;
+    }
+    .checkbox-item input { width: 18px; height: 18px; margin: 0; accent-color: var(--primary); cursor: pointer; }
+
+    .pix-box {
+      display: none; background: #f0fdf4; border: 2px dashed var(--success);
+      padding: 16px; border-radius: 12px; text-align: center; margin-top: 14px;
+    }
+
+    .timeline-item { padding-left: 16px; border-left: 3px solid var(--primary); margin-bottom: 16px; position: relative; }
+    .timeline-item::before {
+      content: ''; position: absolute; left: -7px; top: 2px; width: 11px; height: 11px;
+      border-radius: 50%; background: var(--primary); border: 2px solid #fff;
+    }
+    .timeline-time { font-size: 0.75rem; font-weight: 800; color: var(--primary); text-transform: uppercase; }
+    .timeline-title { font-size: 0.9rem; font-weight: 700; margin: 2px 0; }
+
+    .nav-tabs {
+      position: fixed; bottom: 0; left: 0; right: 0; background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(8px); display: flex; justify-content: space-around;
+      border-top: 1px solid var(--border); padding: 10px 0 14px 0; z-index: 100;
+      box-shadow: 0 -4px 12px rgba(0,0,0,0.05);
+    }
+    .tab-btn {
+      background: none; border: none; color: var(--text-muted);
+      font-size: 0.72rem; font-weight: 700; cursor: pointer;
+      display: flex; flex-direction: column; align-items: center; gap: 3px; width: 20%;
+      transition: color 0.2s, transform 0.1s;
+    }
+    .tab-btn.active { color: var(--primary); transform: translateY(-1px); }
+    .tab-btn span { font-size: 0.68rem; }
+
+    .tab-content { display: none; }
+    .tab-content.active { display: block; animation: fadeIn 0.2s ease-in-out; }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(4px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>🏖️ Bertioga 2026</h1>
+    <p>Caixa, Vaquinhas & Roteiro do Grupo</p>
+    
+    <!-- Contador Regressivo -->
+    <div class="countdown-container">
+      <div class="countdown-box"><div class="val" id="cd-dias">00</div><div class="lbl">Dias</div></div>
+      <div class="countdown-box"><div class="val" id="cd-horas">00</div><div class="lbl">Horas</div></div>
+      <div class="countdown-box"><div class="val" id="cd-minutos">00</div><div class="lbl">Min</div></div>
+      <div class="countdown-box"><div class="val" id="cd-segundos">00</div><div class="lbl">Seg</div></div>
+    </div>
+  </header>
+
+  <div class="container">
+
+    <!-- ABA 1: CAIXA & PIX -->
+    <div id="tab-caixa" class="tab-content active">
+      <div class="card">
+        <div class="card-title">📊 Resumo Financeiro</div>
+        <div class="metrics-grid">
+          <div class="metric-box"><label>Cota / Pessoa</label><span>R$ 100,00</span></div>
+          <div class="metric-box"><label>Saldo Atual</label><span id="saldo-atual" style="color:var(--primary);">R$ 0,00</span></div>
+          <div class="metric-box"><label>Arrecadado</label><span id="total-arrecadado" style="color:var(--success);">R$ 0,00</span></div>
+          <div class="metric-box"><label>Total Gastos</label><span id="total-gastos" style="color:var(--danger);">R$ 0,00</span></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">💳 Pagar Parcela (Pix)</div>
+        <p style="font-size: 0.8rem; color: var(--text-muted);">Escolha o mês e marque as pessoas para quitar:</p>
+        
+        <select id="pix-mes" style="margin-top: 10px;">
+          <option value="outubro">Outubro (Parcela 1/3 - R$ 100)</option>
+          <option value="novembro">Novembro (Parcela 2/3 - R$ 100)</option>
+          <option value="dezembro">Dezembro (Parcela 3/3 - R$ 100)</option>
+        </select>
+
+        <div class="checkbox-group" id="lista-checkbox-pessoas">
+          <p style="font-size:0.8rem; color:var(--text-muted);">Carregando participantes...</p>
+        </div>
+
+        <div style="margin: 14px 0 8px 0; font-weight: 700; font-size: 1.05rem; display:flex; justify-content:space-between; align-items:center;">
+          <span>Total Calculado:</span>
+          <span id="pix-total-calculado" style="color: var(--primary); font-weight: 800; font-size: 1.2rem;">R$ 0,00</span>
+        </div>
+
+        <button class="btn" style="background:var(--success);" id="btn-gerar-pix" onclick="iniciarPagamentoPix()">📋 Copiar Chave Pix & Avisar Pendência</button>
+
+        <div class="pix-box" id="pix-resultado">
+          <h4 style="color:var(--success); font-size:1rem;">✅ Chave Pix Copiada!</h4>
+          <p style="font-size:0.85rem; color:var(--text); margin-top:6px; font-weight:600;">
+            Chave: <u style="color:var(--primary);">avscruz30@gmail.com</u>
+          </p>
+          <p style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
+            Transfira o valor exato de <strong id="pix-confirm-valor" style="color:var(--text);">R$ 0,00</strong> no app do seu banco.
+          </p>
+          <p style="font-size:0.75rem; color:var(--warning); margin-top:6px; font-weight:600;">
+            ⏳ A pendência já apareceu no painel! Assim que o valor for confirmado pelo gestor, a parcela mudará para Pago (Verde).
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- ABA 2: PARTICIPANTES -->
+    <div id="tab-pagamentos" class="tab-content">
+      <div class="card">
+        <div class="card-title">👥 Status dos Pagamentos</div>
+        <p style="font-size: 0.75rem; color: var(--text-muted); margin-bottom: 12px; line-height: 1.4;">
+          Status: <span style="color:#a16207; font-weight:bold;">Aberto</span> | <span style="color:var(--warning); font-weight:bold;">⏳ Pendente</span> | <span style="color:var(--success); font-weight:bold;">✅ Pago</span>
+          <br><small><em>(Apenas o gestor com a senha pode alterar os status)</em></small>
+        </p>
+        <div id="lista-participantes">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- ABA 3: VAQUINHA EXTRA -->
+    <div id="tab-vaquinha" class="tab-content">
+      <div class="card">
+        <div class="card-title">➕ Criar Nova Vaquinha / Extra</div>
+        <input type="text" id="vaquinha-nome" placeholder="Descrição (Ex: Carvão, Bebidas, Carne)" />
+        <input type="number" id="vaquinha-valor-total" placeholder="Valor Total Necessário (R$)" />
+        <button class="btn" onclick="criarVaquinha()">Dividir para 12 Pessoas</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">🎯 Vaquinhas Ativas</div>
+        <div id="lista-vaquinhas">Nenhuma vaquinha extra aberta no momento.</div>
+      </div>
+    </div>
+
+    <!-- ABA 4: GASTOS -->
+    <div id="tab-gastos" class="tab-content">
+      <div class="card">
+        <div class="card-title">🛒 Registrar Gasto / Compras</div>
+        <input type="text" id="gasto-desc" placeholder="O que foi comprado? (Ex: Mercado)" />
+        <input type="number" id="gasto-valor" placeholder="Valor Gasto (R$)" />
+        <button class="btn" onclick="adicionarGasto()">Registrar Gasto no Caixa</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📋 Histórico de Compras</div>
+        <div id="lista-gastos">Carregando...</div>
+      </div>
+    </div>
+
+    <!-- ABA 5: ROTEIRO & GPS EDITÁVEL -->
+    <div id="tab-roteiro" class="tab-content">
+      <div class="card">
+        <div class="card-title">🗺️ Adicionar / Editar Ponto</div>
+        <input type="hidden" id="roteiro-id-edit" value="" />
+        <input type="text" id="roteiro-dia" placeholder="Dia / Horário (Ex: Dia 24 - Manhã)" />
+        <input type="text" id="roteiro-titulo" placeholder="Local ou Atração (Ex: Praia Riviera)" />
+        <input type="text" id="roteiro-link" placeholder="Link do Google Maps ou Coordenadas" />
+        <button class="btn" id="btn-salvar-roteiro" onclick="salvarPontoRoteiro()">Salvar no Roteiro</button>
+      </div>
+
+      <div class="card">
+        <div class="card-title">📅 Roteiro da Viagem</div>
+        <div id="lista-roteiro">Carregando roteiro...</div>
+      </div>
+    </div>
+
+  </div>
+
+  <nav class="nav-tabs">
+    <button class="tab-btn active" onclick="setTab('caixa')">📊<span>Caixa</span></button>
+    <button class="tab-btn" onclick="setTab('pagamentos')">👥<span>Pessoas</span></button>
+    <button class="tab-btn" onclick="setTab('vaquinha')">🤝<span>Vaquinha</span></button>
+    <button class="tab-btn" onclick="setTab('gastos')">🛒<span>Gastos</span></button>
+    <button class="tab-btn" onclick="setTab('roteiro')">🗺️<span>Roteiro</span></button>
+  </nav>
+
+  <script>
+    const VALOR_POR_PESSOA = 100.00;
+    const CHAVE_PIX_REAL = "avscruz30@gmail.com"; 
+    const SENHA_GESTOR = "2026";
+    const DATA_VIAGEM = new Date('2026-12-23T08:00:00'); // Data de início da viagem
+
+    const SUPABASE_URL = "https://qhomyzltkgnfdoouegnu.supabase.co";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFob215emx0a2duZmRvb3VlZ251Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTA0MDY3NTUsImV4cCI6MjEwNTk4Mjc1NX0.9zXbCk62PDvxtEFvyFa_WsEPvQdtra3vvfOo-10qUUE";
+    
+    const NOMES_PADRAO = [
+      'João Cruz', 'Alani Cruz', 'Maria Heloisa', 'Lucas Emanoel',
+      'Ananias Veloso', 'Vera Monica', 'Alini Veloso', 'Eloir Guti',
+      'André', 'Jésica', 'Kaique', 'Adriele'
+    ];
+
+    const ROTEIRO_PADRAO = [
+      { id: '1', dia: 'Dia 23', titulo: 'Chegada e Organização na Casa', link_gps: 'https://maps.google.com/?q=Bertioga+SP' },
+      { id: '2', dia: 'Dia 24 (Manhã)', titulo: 'Praia da Riviera de São Lourenço', link_gps: 'https://maps.google.com/?q=Praia+da+Riviera+de+Sao+Lourenco+Bertioga' },
+      { id: '3', dia: 'Dia 24 (Noite)', titulo: 'Ceia de Natal na Casa', link_gps: '' },
+      { id: '4', dia: 'Dia 25', titulo: 'Praia da Enseada', link_gps: 'https://maps.google.com/?q=Praia+da+Enseada+Bertioga' },
+      { id: '5', dia: 'Dia 26', titulo: 'Praia do Sesc & Shopping', link_gps: 'https://maps.google.com/?q=Praia+do+Sesc+Bertioga' }
+    ];
+
+    const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+    let participantes = [];
+    let gastos = [];
+    let vaquinhas = [];
+    let roteiro = [];
+
+    // Lógica do Contador Regressivo
+    function atualizarContador() {
+      const agora = new Date();
+      const dif = DATA_VIAGEM - agora;
+
+      if (dif <= 0) {
+        document.getElementById('cd-dias').innerText = '00';
+        document.getElementById('cd-horas').innerText = '00';
+        document.getElementById('cd-minutos').innerText = '00';
+        document.getElementById('cd-segundos').innerText = '00';
+        return;
+      }
+
+      const dias = Math.floor(dif / (1000 * 60 * 60 * 24));
+      const horas = Math.floor((dif % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+      const minutos = Math.floor((dif % (1000 * 60 * 60)) / (1000 * 60));
+      const segundos = Math.floor((dif % (1000 * 60)) / 1000);
+
+      document.getElementById('cd-dias').innerText = String(dias).padStart(2, '0');
+      document.getElementById('cd-horas').innerText = String(horas).padStart(2, '0');
+      document.getElementById('cd-minutos').innerText = String(minutos).padStart(2, '0');
+      document.getElementById('cd-segundos').innerText = String(segundos).padStart(2, '0');
+    }
+    setInterval(atualizarContador, 1000);
+    atualizarContador();
+
+    async function carregar() {
+      try {
+        const { data: p } = await db.from('participantes').select('*').order('nome');
+        participantes = (p && p.length > 0) ? p : NOMES_PADRAO.map((nome, index) => ({
+          id: index + 1, nome, outubro: 'aberto', novembro: 'aberto', dezembro: 'aberto'
+        }));
+      } catch (e) {
+        participantes = NOMES_PADRAO.map((nome, index) => ({
+          id: index + 1, nome, outubro: 'aberto', novembro: 'aberto', dezembro: 'aberto'
+        }));
+      }
+
+      try {
+        const { data: g } = await db.from('gastos').select('*').order('created_at', { ascending: false });
+        gastos = g || [];
+      } catch(e) { gastos = []; }
+
+      try {
+        const { data: v } = await db.from('vaquinhas').select('*').order('created_at', { ascending: false });
+        vaquinhas = v || [];
+      } catch(e) { vaquinhas = []; }
+
+      try {
+        const { data: r } = await db.from('roteiro').select('*').order('created_at', { ascending: true });
+        roteiro = (r && r.length > 0) ? r : ROTEIRO_PADRAO;
+      } catch(e) { roteiro = ROTEIRO_PADRAO; }
+
+      render();
+    }
+
+    db.channel('mudancas')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'participantes' }, carregar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'gastos' }, carregar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'vaquinhas' }, carregar)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'roteiro' }, carregar)
+      .subscribe();
+
+    function atualizarCalculoPix() {
+      const marcados = document.querySelectorAll('.check-pessoa:checked').length;
+      const total = marcados * VALOR_POR_PESSOA;
+      document.getElementById('pix-total-calculado').innerText = `R$ ${total.toFixed(2)}`;
+    }
+
+    async function iniciarPagamentoPix() {
+      const mes = document.getElementById('pix-mes').value;
+      const selecionados = Array.from(document.querySelectorAll('.check-pessoa:checked')).map(el => el.value);
+
+      if (selecionados.length === 0) {
+        alert("Por favor, selecione pelo menos 1 pessoa!");
+        return;
+      }
+
+      const valorTotal = selecionados.length * VALOR_POR_PESSOA;
+
+      for (const nome of selecionados) {
+        const p = participantes.find(item => item.nome === nome);
+        if (p) {
+          try {
+            await db.from('participantes').update({ [mes]: 'pendente' }).eq('id', p.id);
+          } catch(e) {}
+          p[mes] = 'pendente';
+        }
+      }
+
+      await navigator.clipboard.writeText(CHAVE_PIX_REAL);
+
+      document.getElementById('pix-confirm-valor').innerText = `R$ ${valorTotal.toFixed(2)}`;
+      document.getElementById('pix-resultado').style.display = 'block';
+
+      render();
+      alert(`Chave Pix (${CHAVE_PIX_REAL}) copiada! Valor total para ${selecionados.length} cota(s): R$ ${valorTotal.toFixed(2)}. O status mudou para '⏳ Pendente' no painel.`);
+    }
+
+    async function alternarStatusManual(id, mes, statusAtual) {
+      let proximoStatus = 'pago';
+      if (statusAtual === 'aberto' || statusAtual === false) proximoStatus = 'pendente';
+      else if (statusAtual === 'pendente') proximoStatus = 'pago';
+      else if (statusAtual === 'pago' || statusAtual === true) proximoStatus = 'aberto';
+
+      if (proximoStatus === 'pago' || proximoStatus === 'aberto') {
+        const senhaDigitada = prompt("Apenas o gestor pode confirmar ou reabrir pagamentos. Digite a senha:");
+        if (senhaDigitada !== SENHA_GESTOR) {
+          alert("Senha incorreta! Apenas o gestor pode alterar este status.");
+          return;
+        }
+      }
+
+      try {
+        await db.from('participantes').update({ [mes]: proximoStatus }).eq('id', id);
+      } catch (e) {}
+
+      const pIndex = participantes.findIndex(item => item.id === id);
+      if (pIndex !== -1) {
+        participantes[pIndex][mes] = proximoStatus;
+        render();
+      }
+    }
+
+    function getBadgeHTML(id, mes, val) {
+      if (val === 'pago' || val === true) {
+        return `<button class="badge badge-paid" onclick="alternarStatusManual('${id}', '${mes}', '${val}')">✅ Pago</button>`;
+      } else if (val === 'pendente') {
+        return `<button class="badge badge-pending" onclick="alternarStatusManual('${id}', '${mes}', '${val}')">⏳ Pendente</button>`;
+      } else {
+        return `<button class="badge badge-unpaid" onclick="alternarStatusManual('${id}', '${mes}', '${val}')">Aberto</button>`;
+      }
+    }
+
+    async function criarVaquinha() {
+      const nome = document.getElementById('vaquinha-nome').value;
+      const total = parseFloat(document.getElementById('vaquinha-valor-total').value);
+      if (nome && total) {
+        const porPessoa = total / 12;
+        try {
+          await db.from('vaquinhas').insert([{ titulo: nome, valor_total: total, valor_pessoa: porPessoa }]);
+        } catch(e){}
+        document.getElementById('vaquinha-nome').value = '';
+        document.getElementById('vaquinha-valor-total').value = '';
+        carregar();
+      }
+    }
+
+    // Função para excluir Vaquinha
+    async function excluirVaquinha(id) {
+      const senha = prompt("Digite a senha do gestor para excluir:");
+      if (senha !== SENHA_GESTOR) {
+        alert("Senha incorreta!");
+        return;
+      }
+      try {
+        await db.from('vaquinhas').delete().eq('id', id);
+      } catch(e){}
+      vaquinhas = vaquinhas.filter(v => v.id != id);
+      render();
+    }
+
+    // Função para excluir Gasto
+    async function excluirGasto(id) {
+      const senha = prompt("Digite a senha do gestor para excluir:");
+      if (senha !== SENHA_GESTOR) {
+        alert("Senha incorreta!");
+        return;
+      }
+      try {
+        await db.from('gastos').delete().eq('id', id);
+      } catch(e){}
+      gastos = gastos.filter(g => g.id != id);
+      render();
+    }
+
+    // Função para excluir Ponto do Roteiro
+    async function excluirRoteiro(id) {
+      const senha = prompt("Digite a senha do gestor para excluir:");
+      if (senha !== SENHA_GESTOR) {
+        alert("Senha incorreta!");
+        return;
+      }
+      try {
+        await db.from('roteiro').delete().eq('id', id);
+      } catch(e){}
+      roteiro = roteiro.filter(r => r.id != id);
+      render();
+    }
+
+    function prepararEdicaoRoteiro(id, dia, titulo, link_gps) {
+      document.getElementById('roteiro-id-edit').value = id;
+      document.getElementById('roteiro-dia').value = dia;
+      document.getElementById('roteiro-titulo').value = titulo;
+      document.getElementById('roteiro-link').value = link_gps || '';
+      document.getElementById('btn-salvar-roteiro').innerText = "Atualizar Ponto do Roteiro";
+    }
+
+    async function salvarPontoRoteiro() {
+      const idEdit = document.getElementById('roteiro-id-edit').value;
+      const dia = document.getElementById('roteiro-dia').value;
+      const titulo = document.getElementById('roteiro-titulo').value;
+      let link = document.getElementById('roteiro-link').value;
+
+      if (link && !link.startsWith('http')) {
+        link = `https://maps.google.com/?q=${encodeURIComponent(link)}`;
+      }
+
+      if (dia && titulo) {
+        if (idEdit) {
+          try {
+            await db.from('roteiro').update({ dia, titulo, link_gps: link }).eq('id', idEdit);
+          } catch(e){}
+          const idx = roteiro.findIndex(r => r.id == idEdit);
+          if (idx !== -1) roteiro[idx] = { id: idEdit, dia, titulo, link_gps: link };
+        } else {
+          try {
+            await db.from('roteiro').insert([{ dia, titulo, link_gps: link }]);
+          } catch(e){}
+          roteiro.push({ id: Date.now().toString(), dia, titulo, link_gps: link });
+        }
+
+        document.getElementById('roteiro-id-edit').value = '';
+        document.getElementById('roteiro-dia').value = '';
+        document.getElementById('roteiro-titulo').value = '';
+        document.getElementById('roteiro-link').value = '';
+        document.getElementById('btn-salvar-roteiro').innerText = "Salvar no Roteiro";
+        render();
+      }
+    }
+
+    async function adicionarGasto() {
+      const desc = document.getElementById('gasto-desc').value;
+      const valor = parseFloat(document.getElementById('gasto-valor').value);
+      if (desc && valor) {
+        const data = new Date().toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+        try {
+          await db.from('gastos').insert([{ descricao: desc, valor, data }]);
+        } catch(e) {}
+        gastos.unshift({ descricao: desc, valor, data });
+        document.getElementById('gasto-desc').value = '';
+        document.getElementById('gasto-valor').value = '';
+        render();
+      }
+    }
+
+    function setTab(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById('tab-' + tabName).classList.add('active');
+      event.currentTarget.classList.add('active');
+    }
+
+    function render() {
+      let totalArrecadado = 0;
+      participantes.forEach(p => {
+        if (p.outubro === 'pago' || p.outubro === true) totalArrecadado += VALOR_POR_PESSOA;
+        if (p.novembro === 'pago' || p.novembro === true) totalArrecadado += VALOR_POR_PESSOA;
+        if (p.dezembro === 'pago' || p.dezembro === true) totalArrecadado += VALOR_POR_PESSOA;
+      });
+
+      const totalGastos = gastos.reduce((acc, g) => acc + Number(g.valor), 0);
+      const saldo = totalArrecadado - totalGastos;
+
+      document.getElementById('total-arrecadado').innerText = `R$ ${totalArrecadado.toFixed(2)}`;
+      document.getElementById('total-gastos').innerText = `R$ ${totalGastos.toFixed(2)}`;
+      document.getElementById('saldo-atual').innerText = `R$ ${saldo.toFixed(2)}`;
+
+      const listaP = document.getElementById('lista-participantes');
+      listaP.innerHTML = '';
+      
+      const listaCheck = document.getElementById('lista-checkbox-pessoas');
+      listaCheck.innerHTML = '';
+
+      participantes.forEach(p => {
+        listaP.innerHTML += `
+          <div class="list-item">
+            <strong>${p.nome}</strong>
+            <div style="display:flex; gap: 6px;">
+              ${getBadgeHTML(p.id, 'outubro', p.outubro)}
+              ${getBadgeHTML(p.id, 'novembro', p.novembro)}
+              ${getBadgeHTML(p.id, 'dezembro', p.dezembro)}
+            </div>
+          </div>
+        `;
+
+        listaCheck.innerHTML += `
+          <label class="checkbox-item">
+            <input type="checkbox" class="check-pessoa" value="${p.nome}" onchange="atualizarCalculoPix()" />
+            ${p.nome}
+          </label>
+        `;
+      });
+
+      const listaV = document.getElementById('lista-vaquinhas');
+      if (vaquinhas.length > 0) {
+        listaV.innerHTML = '';
+        vaquinhas.forEach(v => {
+          listaV.innerHTML += `
+            <div class="list-item">
+              <div>
+                <strong>${v.titulo}</strong>
+                <div style="font-size:0.8rem; color:var(--text-muted);">
+                  Total: R$ ${Number(v.valor_total).toFixed(2)} | <strong>R$ ${Number(v.valor_pessoa).toFixed(2)} por pessoa</strong>
+                </div>
+              </div>
+              <button class="btn-delete" onclick="excluirVaquinha('${v.id}')">🗑️ Excluir</button>
+            </div>
+          `;
+        });
+      } else {
+        listaV.innerHTML = 'Nenhuma vaquinha extra aberta no momento.';
+      }
+
+      const listaG = document.getElementById('lista-gastos');
+      listaG.innerHTML = '';
+      gastos.forEach(g => {
+        listaG.innerHTML += `
+          <div class="list-item">
+            <div><strong>${g.descricao}</strong><br><small style="color:var(--text-muted);">${g.data}</small></div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span style="color:var(--danger); font-weight:bold;">- R$ ${Number(g.valor).toFixed(2)}</span>
+              <button class="btn-delete" onclick="excluirGasto('${g.id}')">🗑️</button>
+            </div>
+          </div>
+        `;
+      });
+
+      const listaR = document.getElementById('lista-roteiro');
+      listaR.innerHTML = '';
+      roteiro.forEach(r => {
+        listaR.innerHTML += `
+          <div class="timeline-item">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <div class="timeline-time">${r.dia}</div>
+              <div>
+                <button class="btn-edit" onclick="prepararEdicaoRoteiro('${r.id}', '${r.dia}', '${r.titulo}', '${r.link_gps || ''}')">✏️ Editar</button>
+                <button class="btn-delete" onclick="excluirRoteiro('${r.id}')">🗑️ Excluir</button>
+              </div>
+            </div>
+            <div class="timeline-title">${r.titulo}</div>
+            ${r.link_gps ? `<a href="${r.link_gps}" target="_blank" class="btn-gps">📍 Rota GPS / Waze</a>` : ''}
+          </div>
+        `;
+      });
+    }
+
+    carregar();
+  </script>
+</body>
+</html>
